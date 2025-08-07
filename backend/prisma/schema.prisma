@@ -1,0 +1,139 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Brand {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  displayName String
+  states      String[]
+  zipCodes    String[]
+  phoneNumber String
+  website     String
+  colors      Json
+  logo        String
+  ctaText     String
+  ctaColor    String
+  description String
+  features    String[]
+  testimonials Json
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  leads       Lead[]
+  sessions    Session[]
+  serviceAreas ServiceArea[]
+
+  @@map("brands")
+}
+
+model Lead {
+  id        String   @id @default(cuid())
+  brandId   String
+  firstName String
+  lastName  String
+  email     String
+  phone     String
+  zipCode   String
+  address   String?
+  source    String
+  utmParams Json?
+  sessionId String
+  status    String   @default("new")
+  notes     String?
+  
+  // Enhanced tracking fields
+  conversionType String? // 'phone_call', 'form_submit', 'chat', 'quote_request'
+  deviceType     String? // 'mobile', 'desktop', 'tablet'
+  pageUrl        String?
+  timeOnPage     Int?    // seconds
+  scrollDepth    Int?    // percentage
+  previousVisits Int     @default(0)
+  
+  // Lead scoring and prioritization
+  leadScore        Int     @default(0)
+  priority         String  @default("medium") // 'high', 'medium', 'low'
+  expectedCloseTime DateTime?
+  timeToClose      Int?    // milliseconds
+  timeToRejection  Int?    // milliseconds
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  brand     Brand    @relation(fields: [brandId], references: [id])
+  session   Session  @relation(fields: [sessionId], references: [id])
+  events    LeadEvent[]
+
+  @@map("leads")
+}
+
+model LeadEvent {
+  id        String   @id @default(cuid())
+  leadId    String
+  eventType String   // 'lead_created', 'phone_call', 'email_sent', 'status_changed'
+  eventData Json?
+  createdAt DateTime @default(now())
+
+  lead Lead @relation(fields: [leadId], references: [id])
+
+  @@map("lead_events")
+}
+
+model Session {
+  id              String   @id @default(cuid())
+  brandId         String
+  zipCode         String
+  userAgent       String
+  ipAddress       String
+  referrer        String?
+  utmParams       Json?
+  isReturnVisitor Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  lastActivity    DateTime @updatedAt
+  
+  // Enhanced tracking fields
+  deviceType       String? // 'mobile', 'desktop', 'tablet'
+  screenResolution String?
+  language         String?
+  timezone         String?
+  pageUrl          String?
+  timeOnPage       Int?    // seconds
+  scrollDepth      Int?    // percentage
+  interactions     Json?   // user interactions
+  conversionIntent String? // 'high', 'medium', 'low'
+
+  brand   Brand   @relation(fields: [brandId], references: [id])
+  leads   Lead[]
+
+  @@map("sessions")
+}
+
+model ServiceArea {
+  id       String   @id @default(cuid())
+  brandId  String
+  zipCodes String[]
+  states   String[]
+  isActive Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  brand Brand @relation(fields: [brandId], references: [id])
+
+  @@map("service_areas")
+}
+
+model WeatherCache {
+  id        String   @id @default(cuid())
+  zipCode   String   @unique
+  data      Json
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@map("weather_cache")
+} 

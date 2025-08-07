@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: safehaven-postgres
+    environment:
+      POSTGRES_DB: safehaven
+      POSTGRES_USER: safehaven
+      POSTGRES_PASSWORD: safehaven123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - safehaven-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: safehaven-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - safehaven-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: safehaven-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:4000
+    depends_on:
+      - backend
+    networks:
+      - safehaven-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: safehaven-backend
+    ports:
+      - "4000:4000"
+    environment:
+      - DATABASE_URL=postgresql://safehaven:safehaven123@postgres:5432/safehaven
+      - REDIS_URL=redis://redis:6379
+      - NODE_ENV=development
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - safehaven-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  safehaven-network:
+    driver: bridge 
